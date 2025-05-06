@@ -7,5 +7,5 @@ module.exports = (app) => {
   app.get("/user/:id", userController.getOne);
   app.post("/user/login", userController.login);
   app.put("/user/:id", userController.update);
-  app.delete("/user/:id", userController.deleted);
+  app.delete("/user/:id", userController.delete);
 };

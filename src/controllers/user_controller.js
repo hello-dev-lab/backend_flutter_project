@@ -1,120 +1,189 @@
-const Users = require('../models/user_model');
+const UsersModel = require('../models/user_model');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
 exports.create = async (req, res) => {
-    try {
-      const { email, password, userName } = req.body;
-      if (!email || !password || !userName) {
-        return res.status(400).send({ message: 'Email, password, and userName are required' });
-      }
-  
-      const hashPassword = await bcrypt.hash(password, 10);
-  
-      const existingUser = await Users.findOne({ where: { email } });
-      if (existingUser) {
-        return res.status(400).send({ message: 'Email already in use' });
-      }
-  
-      const newUser = await Users.create({
-        email,
-        password: hashPassword,
-        userName
-      });
-  
-      res.status(201).send({
-        message: 'User created successfully',
-        user: {
-          id: newUser.id,
-          email: newUser.email,
-          userName: newUser.userName
-        }
-      });
-    } catch (error) {
-      console.error("Error creating user:", error);
-      res.status(500).send({
-        message: 'Failed to create user',
-        error: error.message || error
-      });
+  try {
+    const Users = await UsersModel;
+
+    const { email, password, userName } = req.body;
+
+    if (!email || !password || !userName) {
+      return res.status(400).json({ message: "All fields are required" });
     }
-  };
+
+    const existingUser = await Users.findOne({ where: { email } });
+
+    if (existingUser) {
+      return res.status(400).json({ message: "Email already exists" });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newUser = await Users.create({
+      email,
+      password: hashedPassword,
+      userName,
+    });
+
+    res.status(201).json({
+      message: "User created successfully",
+      token: hashedPassword,
+      user: {
+        id: newUser.id,
+        email: newUser.email,
+        userName: newUser.userName,
+      },
+    });
+
+  } catch (err) {
+    console.error("Error creating user:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
   
 exports.login = async (req, res) => {
-    try{
-        const {email, password} = req.body;
+  try {
+    const Users = await UsersModel; // Await the model
 
-        const user = await Users.findOne({where: {email: email}});
-        if(!user){
-            return res.status(404).send({message: 'User not found'});
-        }
+    const { email, password } = req.body;
 
-        const isPasswordValid = await bcrypt.compare(password, user.password);
-        if(!isPasswordValid){
-            return res.status(401).send({message: 'Invalid password'});
-        }
-
-        const token = jwt.sign({userId: user.id}, process.env.JWT_SECRET, {expiresIn: '1h'});
-
-        res.status(200).send({
-            message: 'Login successful',
-            token: token,
-        });
-    } catch (error) {
-        res.status(500).json({message: 'Error logging in', error: error.message});
+    const user = await Users.findOne({ where: { email } });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
     }
-}
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ message: 'Invalid password' });
+    }
+
+    const token = jwt.sign(
+      { userId: user.id },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+
+    res.status(200).json({
+      message: 'Login successful',
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        userName: user.userName,
+      },
+    });
+  } catch (error) {
+    console.error("Login error:", error);
+    res.status(500).json({ message: 'Error logging in', error: error.message });
+  }
+};
 
 exports.getAll = async (req, res) => {
-    try {
-        const users = await Users.findAll();
-        res.status(200).json(users);
-    } catch (error) {
-        res.status(500).json({message: 'Error getting users', error: error.message});
-    }
-}
+  try {
+    const Users = await UsersModel;
+
+    const allUsers = await Users.findAll({
+      attributes: ['id', 'email', 'userName', 'createdAt', 'updatedAt'],
+    });
+
+    res.status(200).json({
+      message: 'All users retrieved successfully',
+      users: allUsers,
+    });
+  } catch (error) {
+    console.error('Error retrieving users:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
 
 exports.getOne = async (req, res) => {
-    try {
-      const user = await Users.findByPk(req.params.id);
-      if (!user) {
-        return res.status(404).json({ message: 'User not found' });
-      }
-      res.json(user);
-    } catch (error) {
-      res.status(500).json({ message: 'Failed to fetch user', error });
-    }
-  };
+  try {
+    const Users = await UsersModel;
+    const userId = req.params.id;
 
-  exports.update = async (req, res) => {
-    try {
-      const { email, password, userName } = req.body;
-      const [updated] = await Users.update(
-        { email, password, userName },
-        { where: { id: req.params.id } }
-      );
-  
-      if (!updated) {
-        return res.status(404).json({ message: 'User not found or no changes made' });
-      }
-  
-      const updatedUser = await Users.findByPk(req.params.id);
-      res.json(updatedUser);
-    } catch (error) {
-      res.status(500).json({ message: 'Failed to update user', error });
-    }
-  };
+    const user = await Users.findByPk(userId, {
+      attributes: ['id', 'email', 'userName'], // exclude password
+    });
 
-  exports.deleted = async (req, res) => {
-    try {
-      const deleted = await Users.destroy({ where: { id: req.params.id } });
-  
-      if (!deleted) {
-        return res.status(404).json({ message: 'User not found' });
-      }
-  
-      res.json({ message: 'User deleted successfully' });
-    } catch (error) {
-      res.status(500).json({ message: 'Failed to delete user', error });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
     }
-  };
+
+    res.status(200).json({
+      message: 'User retrieved successfully',
+      user: user,
+    });
+  } catch (error) {
+    console.error('Error retrieving user:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+exports.update = async (req, res) => {
+  try {
+    const Users = await UsersModel;
+    const userId = req.params.id;
+    const { email, password, userName } = req.body;
+
+
+    const user = await Users.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (email) {
+      const existingUser = await Users.findOne({ where: { email } });
+      if (existingUser && existingUser.id !== userId) {
+        return res.status(400).json({ message: 'Email already in use' });
+      }
+      user.email = email;
+    }
+
+    if (password) {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      user.password = hashedPassword;
+    }
+
+    if (userName) {
+      user.userName = userName;
+    }
+
+    await user.save();
+
+    res.status(200).json({
+      message: 'User updated successfully',
+      user: {
+        id: user.id,
+        email: user.email,
+        userName: user.userName,
+      },
+    });
+  } catch (error) {
+    console.error('Error updating user:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+exports.delete = async (req, res) => {
+  try {
+    const Users = await UsersModel;
+    const userId = req.params.id;
+
+    const user = await Users.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    await user.destroy();
+
+    res.status(200).json({
+      message: 'User deleted successfully',
+    });
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};

@@ -4,7 +4,7 @@ const sequelizePromise = require("../config/db");
 const defineAdminModel = async () => {
   const sequelize = await sequelizePromise;
 
-  const Admin = sequelize.define("db_users", {
+  const User = sequelize.define("db_users", {
     email: {
       type: DataTypes.STRING,
       allowNull: false,
@@ -21,9 +21,9 @@ const defineAdminModel = async () => {
   });
 
   await sequelize.sync({ force: false, alter: true });
-  console.log("Admin model synchronized.");
+  console.log(" User table has been successfully created");
 
-  return Admin;
+  return User;
 };
 
 const adminModelPromise = defineAdminModel();
