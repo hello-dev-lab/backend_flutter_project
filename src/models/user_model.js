@@ -7,8 +7,8 @@ const defineAdminModel = async () => {
   const User = sequelize.define("db_users", {
     email: {
       type: DataTypes.STRING,
-      allowNull: false,
       unique: true,
+      allowNull: false,
     },
     password: {
       type: DataTypes.STRING,
@@ -20,7 +20,8 @@ const defineAdminModel = async () => {
     },
   });
 
-  await sequelize.sync({ force: false, alter: true });
+  await sequelize.sync();
+
   console.log(" User table has been successfully created");
 
   return User;

@@ -20,23 +20,16 @@ const defineProductModel = async () => {
             type: DataTypes.FLOAT,
             allowNull: false,
         },
-        rating: {
-            type: DataTypes.FLOAT,
-            defaultValue: 0,
-        },
-        review_count: {
-            type: DataTypes.INTEGER,
-            defaultValue: 0,
-        },
         description: {
-            type: DataTypes.TEXt,
+            type: DataTypes.TEXT,
             allowNull: true,
         },
-        category: {
+        category_id: {
             type: DataTypes.STRING,
             allowNull: true,
         },
     });
+     await Sequelize.sync();
 
     return Product;
 };

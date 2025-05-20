@@ -2,25 +2,21 @@ const UsersModel = require('../models/user_model');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
+const { Op } = require('sequelize');
 
 exports.create = async (req, res) => {
   try {
     const Users = await UsersModel;
-
     const { email, password, userName } = req.body;
 
     if (!email || !password || !userName) {
       return res.status(400).json({ message: "All fields are required" });
     }
-
     const existingUser = await Users.findOne({ where: { email } });
-
     if (existingUser) {
       return res.status(400).json({ message: "Email already exists" });
     }
-
     const hashedPassword = await bcrypt.hash(password, 10);
-
     const newUser = await Users.create({
       email,
       password: hashedPassword,
@@ -46,7 +42,7 @@ exports.create = async (req, res) => {
   
 exports.login = async (req, res) => {
   try {
-    const Users = await UsersModel; // Await the model
+    const Users = await UsersModel;
 
     const { email, password } = req.body;
 
@@ -98,6 +94,38 @@ exports.getAll = async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 };
+
+
+exports.search = async (req, res) => {
+  try {
+    const Users = await UsersModel;
+    const { keyword } = req.body;
+
+    if (!keyword) {
+      return res.status(400).json({ message: 'Keyword is required for search' });
+    }
+
+    const allUsers = await Users.findAll({
+      where: {
+        [Op.or]: [
+          { email: { [Op.like]: `%${keyword}%` } },
+          { userName: { [Op.like]: `%${keyword}%` } },
+        ]
+      },
+      attributes: ['email', 'userName'],
+    });
+
+    res.status(200).json({
+      message: 'Users retrieved successfully',
+      users: allUsers,
+    });
+  } catch (error) {
+    console.error('Error retrieving users:', error.message, error.stack);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+
 
 exports.getOne = async (req, res) => {
   try {
@@ -187,3 +215,22 @@ exports.delete = async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 };
+
+exports.verifyToken = async (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  if(!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ message: 'No token provided' });
+  }
+  
+  const token = authHeader.split(' ')[1];
+  
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log(decoded);
+    req.user = decoded;
+    // next();
+    res.status(200).json({ message: 'Token verified' });
+  } catch (err) {
+    res.status(401).json({ message: 'Invalid token' });
+  }
+}

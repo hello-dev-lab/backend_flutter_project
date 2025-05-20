@@ -1,25 +1,29 @@
 const { DataTypes } = require("sequelize");
 const sequelizePromise = require("../config/db");
 
-const defineImageModel = async () => {
-    const sequelize = await sequelizePromise;
+const defineCategoryModel = async () => {
+  const sequelize = await sequelizePromise;
 
-    const Image = sequelize.define("db_images", {
-        id: {
-            type: DataTypes.INTEGER,
-            primaryKey: true,
-            autoIncrement: true,
-        },
-        name: {
-            type: DataTypes.STRING,
-            allowNull: false,
-        },
-    });
+  const Category = sequelize.define("db_categories", {
+    id: {
+        type: DataTypes.UUID,
+        defaultValue: DataTypes.UUIDV4,
+        allowNull: false,
+        primaryKey: true
+    },
+    categoryName: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+  });
 
-    await sequelize.sync({ force: false, alter: true });
-    console.log(" Image table has been successfully created");
+  await sequelize.sync();
 
-    return Image;
+  console.log(" User table has been successfully created");
+
+  return Category;
 };
 
-module.exports = defineImageModel;
+const categories = defineCategoryModel();
+
+module.exports = categories;
