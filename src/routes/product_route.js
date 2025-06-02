@@ -9,4 +9,5 @@ module.exports = (app) => {
     app.put("/update/:id", ProdcutController.update)
     app.delete("/delete/:id", ProdcutController.delete)
     app.post("/search", ProdcutController.search)
+    app.post("/product/deleteMultiple", ProdcutController.deleteMultiple)
 }

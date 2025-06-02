@@ -1,4 +1,4 @@
-const UsersModel = require('../models/user_model');
+const UsersModel= require('../models/user_model');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
@@ -79,9 +79,9 @@ exports.login = async (req, res) => {
 
 exports.getAll = async (req, res) => {
   try {
-    const Users = await UsersModel;
+    const User = await UsersModel;
 
-    const allUsers = await Users.findAll({
+    const allUsers = await User.findAll({
       attributes: ['id', 'email', 'userName', 'createdAt', 'updatedAt'],
     });
 

@@ -4,8 +4,8 @@ const sequelizePromise = require("../config/db");
 const defineCategoryModel = async () => {
   const sequelize = await sequelizePromise;
 
-  const Category = sequelize.define("db_categories", {
-    id: {
+  const Category = sequelize.define("tb_categories", {
+     id: {
         type: DataTypes.UUID,
         defaultValue: DataTypes.UUIDV4,
         allowNull: false,
@@ -14,6 +14,10 @@ const defineCategoryModel = async () => {
     categoryName: {
       type: DataTypes.STRING,
       allowNull: false,
+    },
+    image_url: {
+      type: DataTypes.STRING,
+      allowNull: true,
     },
   });
 

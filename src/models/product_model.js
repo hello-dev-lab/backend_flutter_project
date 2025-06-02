@@ -3,7 +3,7 @@ const sequelizePromise = require("../config/db");
 
 const defineProductModel = async () => {
     const Sequelize = await sequelizePromise;
-    const Product = Sequelize.define("db_products", {
+    const Product = Sequelize.define("tb_products", {
         name: {
             type: DataTypes.STRING,
             allowNull: false,
@@ -24,7 +24,7 @@ const defineProductModel = async () => {
             type: DataTypes.TEXT,
             allowNull: true,
         },
-        category_id: {
+        category: {
             type: DataTypes.STRING,
             allowNull: true,
         },
