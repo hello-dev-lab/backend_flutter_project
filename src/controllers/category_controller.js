@@ -7,25 +7,23 @@ const path = require("path");
 exports.create = async (req, res) => {
   try {
     const Category = await categoryModelPromise;
+    const { categoryName, image_url, createBy, updateBy } = req.body;
 
-    const { categoryName, image_url } = req.body;
-
-    if (!categoryName || !image_url) {
-      return res.status(400).json({ message: "categoryName is required" });
+    if (!categoryName || !image_url || !createBy) {
+      return res.status(400).json({ message: 'Missing required fields' });
     }
 
     const newCategory = await Category.create({
       categoryName,
       image_url,
+      createBy,
+      updateBy
     });
 
-    return res.status(201).json({
-      message: "Category created successfully",
-      data: newCategory,
-    });
+    res.status(201).json(newCategory);
   } catch (error) {
-    console.error("Error creating category:", error);
-    return res.status(500).json({ message: "Internal Server Error" });
+    console.error('Error creating category:', error);
+    res.status(500).json({ message: 'Server error' });
   }
 };
 

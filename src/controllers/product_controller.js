@@ -1,30 +1,32 @@
-const { json } = require("body-parser");
 const defineProductModel = require("../models/product_model");
 const { Op } = require("sequelize");
 const fs = require("fs");
 const path = require("path");
 
-(async () => {
-  await defineProductModel();
-})();
 exports.create = async (req, res) => {
   try {
-    const Product = await defineProductModel(); // ✅ call the function
-    const { name, image_url, price, original_price, description, category } =
-      req.body;
+    const Product = await defineProductModel();
+    const {
+      name,
+      image_url,
+      price,
+      original_price,
+      description,
+      category,
+      createBy,
+      updateBy
+    } = req.body;
 
-    // ✅ check fields
-    if (
-      !name ||
-      !image_url ||
-      !price ||
-      !original_price ||
-      !description ||
-      !category
-    ) {
+     console.log(createBy, updateBy);
+    // Get admin ID from token (assumes middleware sets req.user)
+    // const adminId = req.user?.firstName || "admin"; // Fallback if not using token-based auth
+
+    // Validate required fields
+    if (!name || !image_url || !price || !original_price || !description || !category) {
       return res.status(400).json({ error: "All fields are required" });
     }
 
+    // Create product
     const newProduct = await Product.create({
       name,
       image_url,
@@ -32,26 +34,27 @@ exports.create = async (req, res) => {
       original_price,
       description,
       category,
+      createBy,
+      updateBy
     });
 
     res.status(201).json({
       message: "Product created successfully",
       product: newProduct,
     });
+
   } catch (error) {
     console.error("Create Product Error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
 
+
 exports.getAll = async (req, res) => {
   try {
     const Product = await defineProductModel();
     const products = await Product.findAll();
-    res.status(200).json({
-      message: "Products retrieved successfully",
-      products: products,
-    });
+    res.status(200).json({ message: "Success", products });
   } catch (error) {
     res.status(500).json({ error: "Internal server error" });
   }
@@ -60,14 +63,10 @@ exports.getAll = async (req, res) => {
 exports.getOne = async (req, res) => {
   try {
     const Product = await defineProductModel();
-    const products = await Product.findByPk(req.params.id);
-    if (!products) {
-      return res.status(404).json({ error: "Product not found" });
-    }
-    res.status(200).json({
-      message: "Product retrieved successfully",
-      products: products,
-    });
+    const product = await Product.findByPk(req.params.id);
+    if (!product) return res.status(404).json({ error: "Product not found" });
+
+    res.status(200).json({ message: "Success", product });
   } catch (error) {
     res.status(500).json({ error: "Internal server error" });
   }
@@ -77,23 +76,22 @@ exports.update = async (req, res) => {
   try {
     const Product = await defineProductModel();
     const { id } = req.params;
-    const { name, image_url, price, original_price, description, category } =
-      req.body;
+    const { name, image_url, price, original_price, description, category, updateBy } = req.body;
+
     const product = await Product.findByPk(id);
-    if (!product) {
-      return res.status(404).json({ error: "Product not found" });
-    }
-    product.name = name;
-    product.image_url = image_url;
-    product.price = price;
-    product.original_price = original_price;
-    product.description = description;
-    product.category = category;
-    await product.save();
-    res.status(200).json({
-      message: "Product updated successfully",
-      product: product,
+    if (!product) return res.status(404).json({ error: "Product not found" });
+
+    await product.update({
+      name,
+      image_url,
+      price,
+      original_price,
+      description,
+      category,
+      updateBy: updateBy || "admin",
     });
+
+    res.status(200).json({ message: "Product updated successfully", product });
   } catch (error) {
     res.status(500).json({ error: "Internal server error" });
   }
@@ -102,41 +100,29 @@ exports.update = async (req, res) => {
 exports.delete = async (req, res) => {
   try {
     const Product = await defineProductModel();
-    const { id } = req.params;
-    const product = await Product.findByPk(id);
+    const product = await Product.findByPk(req.params.id);
 
-    if (!product) {
-      return res.status(404).json({ error: "Product not found" });
-    }
+    if (!product) return res.status(404).json({ error: "Product not found" });
 
-    let image = [];
+    let images = [];
 
     try {
-      image = JSON.parse(product.image_url);
+      images = JSON.parse(product.image_url);
     } catch {
       if (typeof product.image_url === "string") {
-        image = [product.image_url];
+        images = [product.image_url];
       }
     }
 
-    image.forEach((filename) => {
+    images.forEach((filename) => {
       const filePath = path.join(process.cwd(), "uploads", filename);
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-        console.log(`Deleted image: ${filename}`);
-      } else {
-        console.warn(`Image file not found: ${filename}`);
-      }
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     });
 
     await product.destroy();
-
-    res.status(200).json({
-      message: "Product deleted successfully",
-      product: product,
-    });
+    res.status(200).json({ message: "Product deleted successfully" });
   } catch (error) {
-    console.error("Error deleting product:", error);
+    console.error("Delete Product Error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -145,20 +131,14 @@ exports.search = async (req, res) => {
   try {
     const Product = await defineProductModel();
     const { keyword } = req.body;
-    if (!keyword) {
-      return res.status(400).json({ error: "Keyword is required for search" });
-    }
+
+    if (!keyword) return res.status(400).json({ error: "Keyword is required" });
+
     const products = await Product.findAll({
-      where: {
-        name: {
-          [Op.like]: `%${keyword}%`,
-        },
-      },
+      where: { name: { [Op.like]: `%${keyword}%` } },
     });
-    res.status(200).json({
-      message: "Products retrieved successfully",
-      products: products,
-    });
+
+    res.status(200).json({ message: "Search successful", products });
   } catch (error) {
     res.status(500).json({ error: "Internal server error" });
   }
@@ -173,7 +153,7 @@ exports.deleteMultiple = async (req, res) => {
       return res.status(400).json({ error: "No product IDs provided" });
     }
 
-    const deletedProducts = [];
+    const deleted = [];
 
     for (const id of ids) {
       const product = await Product.findByPk(id);
@@ -191,24 +171,15 @@ exports.deleteMultiple = async (req, res) => {
 
       images.forEach((filename) => {
         const filePath = path.join(process.cwd(), "uploads", filename);
-        if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath);
-          console.log(`Deleted image: ${filename}`);
-        } else {
-          console.warn(`Image file not found: ${filename}`);
-        }
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
       });
 
       await product.destroy();
-
-      deletedProducts.push(product);
+      deleted.push(product);
     }
 
-    res.status(200).json({
-      message: "Products deleted successfully",
-      products: deletedProducts,
-    });
+    res.status(200).json({ message: "Deleted selected products", deleted });
   } catch (error) {
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ error: "Internal server error" });
   }
 };

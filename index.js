@@ -23,6 +23,7 @@ app.use('/upload', upload);
 require ('./src/routes/user_route')(app);
 require ('./src/routes/category_route')(app);
 require ('./src/routes/product_route')(app);
+require ('./src/routes/admin_route')(app);
 
 app.listen(port,"192.168.69.246", () => {
     console.log(`Server is running on port ${port}`);

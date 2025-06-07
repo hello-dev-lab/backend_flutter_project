@@ -19,9 +19,17 @@ const defineCategoryModel = async () => {
       type: DataTypes.STRING,
       allowNull: true,
     },
+    createBy: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    updateBy: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
   });
 
-  await sequelize.sync();
+  await sequelize.sync( { alter: true });
 
   console.log(" User table has been successfully created");
 

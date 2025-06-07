@@ -229,7 +229,7 @@ exports.verifyToken = async (req, res, next) => {
     console.log(decoded);
     req.user = decoded;
     // next();
-    res.status(200).json({ message: 'Token verified' });
+    res.status(200).json({ message: 'success' });
   } catch (err) {
     res.status(401).json({ message: 'Invalid token' });
   }

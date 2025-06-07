@@ -7,7 +7,7 @@ const defineUserModel = async () => {
   const User = sequelize.define("User", {
     email: {
       type: DataTypes.STRING,
-      unique: true,
+      // unique: true,
       allowNull: false,
     },
     password: {
