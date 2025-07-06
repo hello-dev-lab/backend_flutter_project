@@ -1,5 +1,4 @@
 const userController = require("../controllers/user_controller");
-const auth = require("../middleware");
 
 module.exports = (app) => {
   app.get("/user/verifyToken", userController.verifyToken);

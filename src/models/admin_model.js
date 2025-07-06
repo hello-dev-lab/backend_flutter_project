@@ -7,7 +7,6 @@ const defineAdminModel = async () => {
   const Admin = sequelize.define("Admin", {
     email: {
       type: DataTypes.STRING,
-      unique: true,
       allowNull: false,
     },
     password: {
@@ -27,8 +26,10 @@ const defineAdminModel = async () => {
     timestamps: true,
   });
 
-  await Admin.sync();
+  await Admin.sync({ alter: true });
+
   return Admin;
+
 };
 
 const adminModelPromise = defineAdminModel();

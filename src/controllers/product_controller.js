@@ -1,5 +1,5 @@
 const defineProductModel = require("../models/product_model");
-const { Op } = require("sequelize");
+const { Op, where } = require("sequelize");
 const fs = require("fs");
 const path = require("path");
 
@@ -14,19 +14,21 @@ exports.create = async (req, res) => {
       description,
       category,
       createBy,
-      updateBy
+      updateBy,
     } = req.body;
 
-     console.log(createBy, updateBy);
-    // Get admin ID from token (assumes middleware sets req.user)
-    // const adminId = req.user?.firstName || "admin"; // Fallback if not using token-based auth
-
-    // Validate required fields
-    if (!name || !image_url || !price || !original_price || !description || !category) {
+    console.log(createBy, updateBy);
+    if (
+      !name ||
+      !image_url ||
+      !price ||
+      !original_price ||
+      !description ||
+      !category
+    ) {
       return res.status(400).json({ error: "All fields are required" });
     }
 
-    // Create product
     const newProduct = await Product.create({
       name,
       image_url,
@@ -35,20 +37,18 @@ exports.create = async (req, res) => {
       description,
       category,
       createBy,
-      updateBy
+      updateBy,
     });
 
     res.status(201).json({
       message: "Product created successfully",
       product: newProduct,
     });
-
   } catch (error) {
     console.error("Create Product Error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
-
 
 exports.getAll = async (req, res) => {
   try {
@@ -72,30 +72,60 @@ exports.getOne = async (req, res) => {
   }
 };
 
+
+
 exports.update = async (req, res) => {
+  const Product = await require("../models/product_model")(); // ← this line loads your Product model
+
   try {
-    const Product = await defineProductModel();
-    const { id } = req.params;
-    const { name, image_url, price, original_price, description, category, updateBy } = req.body;
-
+    const id = req.params.id;
     const product = await Product.findByPk(id);
-    if (!product) return res.status(404).json({ error: "Product not found" });
 
-    await product.update({
+    if (!product) {
+      return res.status(404).json({ error: "Product not found" });
+    }
+
+    const {
       name,
-      image_url,
       price,
       original_price,
       description,
       category,
-      updateBy: updateBy || "admin",
+      updateBy,
+    } = req.body;
+
+    let image_url = product.image_url;
+
+    if (req.file) {
+      // remove old file
+      const fs = require("fs");
+      const path = require("path");
+      const oldPath = path.join(__dirname, "..", "uploads", product.image_url);
+      if (fs.existsSync(oldPath)) {
+        fs.unlinkSync(oldPath);
+      }
+
+      image_url = req.file.filename;
+    }
+
+    await product.update({
+      name,
+      price,
+      original_price,
+      description,
+      category,
+      updateBy,
+      image_url,
     });
 
-    res.status(200).json({ message: "Product updated successfully", product });
+    res.json({ message: "Product updated successfully", product });
   } catch (error) {
-    res.status(500).json({ error: "Internal server error" });
+    console.error("Update error:", error);
+    res.status(500).json({ error: "Failed to update product" });
   }
 };
+
+
 
 exports.delete = async (req, res) => {
   try {

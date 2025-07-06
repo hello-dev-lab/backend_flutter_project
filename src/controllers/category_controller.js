@@ -41,7 +41,6 @@ exports.getAll = async (req, res) => {
   }
 };
 
-// Get one
 exports.getOne = async (req, res) => {
   try {
     const Category = await categoryModelPromise;
@@ -66,7 +65,7 @@ exports.updated = async (req, res) => {
   try {
     const Category = await categoryModelPromise;
     const { id } = req.params;
-    const { name, image_url } = req.body;
+    const { name, updateBy } = req.body;
 
     if (!name) {
       return res.status(400).json({ error: "Name is required" });
@@ -78,7 +77,20 @@ exports.updated = async (req, res) => {
     }
 
     category.categoryName = name;
-    if (image_url !== undefined) category.image_url = image_url;
+
+    if (req.file) {
+      if (category.image_url) {
+        const oldImagePath = path.join(process.cwd(), "uploads", category.image_url);
+        if (fs.existsSync(oldImagePath)) {
+          fs.unlinkSync(oldImagePath);
+        }
+      }
+      category.image_url = req.file.filename; 
+    }
+
+    if (updateBy !== undefined) {
+      category.updateBy = updateBy;
+    }
 
     await category.save();
 
@@ -87,9 +99,11 @@ exports.updated = async (req, res) => {
       category,
     });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
 
 // Delete
 exports.delete = async (req, res) => {

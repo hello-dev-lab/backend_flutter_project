@@ -29,11 +29,9 @@ const defineCategoryModel = async () => {
     },
   });
 
-  await sequelize.sync( { alter: true });
+  await Category.sync( { alter: true });
 
-  console.log(" User table has been successfully created");
-
-  return Category;
+ return Category;
 };
 
 const categories = defineCategoryModel();

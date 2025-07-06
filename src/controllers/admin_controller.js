@@ -1,8 +1,8 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const AdminModel = require("../models/admin_model"); // Use directly, no need to call it as a function
+const AdminModel = require("../models/admin_model");
 const { Op } = require("sequelize");
-
+const loginAttempts = {};
 const JWT_SECRET = process.env.JWT_SECRET || "secret";
 
 exports.registerAdmin = async (req, res) => {
@@ -10,21 +10,18 @@ exports.registerAdmin = async (req, res) => {
     const Admin = await AdminModel;
     const { email, password, firstName, lastName } = req.body;
 
-    // Check for existing admin by email or firstName
     const existingAdmin = await Admin.findOne({
       where: {
-        [Op.or]: [
-          { email: email },
-          { firstName: firstName }
-        ]
-      }
+        [Op.or]: [{ email: email }, { firstName: firstName }],
+      },
     });
 
     if (existingAdmin) {
       return res.status(400).json({
-        message: existingAdmin.email === email
-          ? "Email is already registered"
-          : "First name is already taken"
+        message:
+          existingAdmin.email === email
+            ? "Email is already registered"
+            : "First name is already taken",
       });
     }
 
@@ -46,33 +43,56 @@ exports.registerAdmin = async (req, res) => {
         lastName: newAdmin.lastName,
       },
     });
-
   } catch (error) {
     console.error("Registration error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
 
-
 exports.login = async (req, res) => {
-      
   try {
     const Admin = await AdminModel;
     const { email, password } = req.body;
+
+    const attempts = loginAttempts[email] || { count: 0, lastAttempt: 0 };
+    const now = Date.now();
+
+    if (attempts.count >= 5 && now - attempts.lastAttempt < 15 * 60 * 1000) {
+      return res.status(429).json({
+        message: "Too many failed attempts. Try again after 15 minutes.",
+      });
+    }
+
     const admin = await Admin.findOne({ where: { email } });
 
     if (!admin) {
+      loginAttempts[email] = {
+        count: attempts.count + 1,
+        lastAttempt: now,
+      };
       return res.status(404).json({ message: "Admin not found" });
     }
 
     const isMatch = await bcrypt.compare(password, admin.password);
     if (!isMatch) {
+      loginAttempts[email] = {
+        count: attempts.count + 1,
+        lastAttempt: now,
+      };
       return res.status(401).json({ message: "Invalid password" });
     }
 
-    const token = jwt.sign({ id: admin.id, email: admin.email }, JWT_SECRET, {
-      expiresIn: "1d",
-    });
+    delete loginAttempts[email];
+
+    const token = jwt.sign(
+      {
+        id: admin.id,
+        email: admin.email,
+        role: "admin",
+      },
+      JWT_SECRET,
+      { expiresIn: "1d" }
+    );
 
     res.json({ message: "Login successful", token, admin });
   } catch (error) {
@@ -80,7 +100,6 @@ exports.login = async (req, res) => {
     res.status(500).json({ message: "Login failed", error });
   }
 };
-
 
 exports.getAllAdmins = async (req, res) => {
   try {
@@ -91,8 +110,6 @@ exports.getAllAdmins = async (req, res) => {
     res.status(500).json({ message: "Failed to get admins", error });
   }
 };
-
-
 
 exports.getAdminById = async (req, res) => {
   try {
@@ -108,8 +125,6 @@ exports.getAdminById = async (req, res) => {
     res.status(500).json({ message: "Failed to get admin", error });
   }
 };
-
-
 
 exports.updateAdmin = async (req, res) => {
   try {
@@ -127,14 +142,17 @@ exports.updateAdmin = async (req, res) => {
       hashedPassword = await bcrypt.hash(password, 10);
     }
 
-    await admin.update({ email, password: hashedPassword, firstName, lastName });
+    await admin.update({
+      email,
+      password: hashedPassword,
+      firstName,
+      lastName,
+    });
     res.json({ message: "Admin updated successfully", admin });
   } catch (error) {
     res.status(500).json({ message: "Update failed", error });
   }
 };
-
-
 
 exports.deleteAdmin = async (req, res) => {
   try {
@@ -152,5 +170,3 @@ exports.deleteAdmin = async (req, res) => {
     res.status(500).json({ message: "Delete failed", error });
   }
 };
-
-

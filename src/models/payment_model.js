@@ -1,35 +1,37 @@
 const { DataTypes } = require("sequelize");
 const sequelizePromise = require("../config/db");
 
-const Payment = sequelizePromise.define('db_payments', {
-    id: {
-        type: DataTypes.INTEGER,
-        primaryKey: true,
-        autoIncrement: true,
-    },
-    order_id: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        references: {
-            model: 'db_orders',
-            key: 'id',
-        }
-    },
-    payment_method: {
-        type: DataTypes.ENUM('offline', 'online'),
-        allowNull: false,
-    },
-    status: {
-        type: DataTypes.ENUM('pending', 'success', 'failed', 'refunded'),
-        allowNull: false,
-    },
-    amount: {
-        type: DataTypes.FLOAT,
-        allowNull: false,
-    },
-    transaction_id: {
-    type: DataTypes.STRING,
-  },
-}); 
+const definePaymentModel = async () => {
+    const sequelize = await sequelizePromise;
+    const Payment = sequelize.define("Payment", {
+        user_id: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+        },
+        order_id: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+        },
+        payment_method: {
+            type: DataTypes.STRING,
+            allowNull: false,
+        },
+        amount: {
+            type: DataTypes.FLOAT,
+            allowNull: false,
+        },
+        payment_date: {
+            type: DataTypes.DATE,
+            defaultValue: DataTypes.NOW,
+        },
+    }, {
+        tableName: "tb_payments",
+        timestamps: false
+    });
 
-module.exports = Payment
+    await Payment.sync({ alter: true });
+
+    return Payment;
+}
+
+module.exports = definePaymentModel;

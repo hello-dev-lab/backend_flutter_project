@@ -29,7 +29,7 @@ const defineProductModel = async () => {
       allowNull: true,
     },
     createBy: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.STRING,
       allowNull: false,
     },
     updateBy: {
@@ -37,9 +37,10 @@ const defineProductModel = async () => {
       allowNull: false,
     },
   });
-  await Sequelize.sync();
+  await Product.sync();
 
   return Product;
+
 };
 
 module.exports = defineProductModel;
