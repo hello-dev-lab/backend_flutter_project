@@ -72,8 +72,6 @@ exports.getOne = async (req, res) => {
   }
 };
 
-
-
 exports.update = async (req, res) => {
   const Product = await require("../models/product_model")(); // ← this line loads your Product model
 
@@ -85,14 +83,8 @@ exports.update = async (req, res) => {
       return res.status(404).json({ error: "Product not found" });
     }
 
-    const {
-      name,
-      price,
-      original_price,
-      description,
-      category,
-      updateBy,
-    } = req.body;
+    const { name, price, original_price, description, category, updateBy } =
+      req.body;
 
     let image_url = product.image_url;
 
@@ -124,8 +116,6 @@ exports.update = async (req, res) => {
     res.status(500).json({ error: "Failed to update product" });
   }
 };
-
-
 
 exports.delete = async (req, res) => {
   try {
@@ -184,13 +174,17 @@ exports.deleteMultiple = async (req, res) => {
     }
 
     const deleted = [];
+    const failed = [];
 
     for (const id of ids) {
       const product = await Product.findByPk(id);
-      if (!product) continue;
+      if (!product) {
+        failed.push({ id, reason: "Product not found" });
+        continue;
+      }
 
+      // Attempt to delete images
       let images = [];
-
       try {
         images = JSON.parse(product.image_url);
       } catch {
@@ -201,15 +195,29 @@ exports.deleteMultiple = async (req, res) => {
 
       images.forEach((filename) => {
         const filePath = path.join(process.cwd(), "uploads", filename);
-        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+        try {
+          if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+        } catch (err) {
+          console.error(`Failed to delete file ${filePath}:`, err.message);
+        }
       });
 
-      await product.destroy();
-      deleted.push(product);
+      try {
+        await product.destroy();
+        deleted.push(product.id);
+      } catch (err) {
+        console.error(`Failed to delete product with ID ${id}:`, err.message);
+        failed.push({ id, reason: "Product is referenced in orders" });
+      }
     }
 
-    res.status(200).json({ message: "Deleted selected products", deleted });
+    return res.status(200).json({
+      message: "Delete process complete",
+      deleted,
+      failed,
+    });
   } catch (error) {
-    res.status(500).json({ error: "Internal server error" });
+    console.error("Delete multiple error:", error);
+    res.status(500).json({ error: "Internal server error", details: error.message });
   }
 };

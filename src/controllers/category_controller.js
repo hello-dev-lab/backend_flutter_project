@@ -31,15 +31,27 @@ exports.create = async (req, res) => {
 exports.getAll = async (req, res) => {
   try {
     const Category = await categoryModelPromise;
-    const categories = await Category.findAll();
+    const skip = parseInt(req.query.skip) || 0;
+    const limit = parseInt(req.query.limit) || 10;
+
+    const { count, rows } = await Category.findAndCountAll({
+      offset: skip,
+      limit: limit,
+    });
+
     res.status(200).json({
       message: "Categories retrieved successfully",
-      categories,
+      skip,
+      limit,
+      count, 
+      categories: rows, // only up to 10 per request
     });
   } catch (error) {
+    console.error("Error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
 
 exports.getOne = async (req, res) => {
   try {

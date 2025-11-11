@@ -1,4 +1,5 @@
 const defineOrderDetailModel = require("../models/orderDetail_model");
+const defineProductModel = require("../models/product_model");
 
 exports.create = async (req, res) => {
   try {
@@ -21,6 +22,33 @@ exports.getAll = async (req, res) => {
     res.status(200).json(details);
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch order details", error: error.message });
+  }
+};
+
+exports.getOrderDetailsWithProduct = async (req, res) => {
+  try {
+    const OrderDetail = await defineOrderDetailModel();
+    const Product = await defineProductModel();
+
+
+    OrderDetail.belongsTo(Product, { foreignKey: "product_id" });
+
+    const orderId = req.params.orderId; // e.g., /order/detail/17
+
+    const details = await OrderDetail.findAll({
+      where: { order_id: orderId },
+      include: [
+        {
+          model: Product,
+          attributes: ["id", "name", "price", "image_url", "description"],
+        },
+      ],
+    });
+
+    res.status(200).json({ orderDetails: details });
+  } catch (error) {
+    console.error("Fetch order details with product error:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 };
 

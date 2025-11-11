@@ -9,6 +9,10 @@ exports.create = async (req, res) => {
       district,
       village,
       total_amount,
+      phoneNumber,
+      payment_image,
+      Transportation,
+      payment_method,
       order_date,
       status,
     } = req.body;
@@ -30,6 +34,10 @@ exports.create = async (req, res) => {
       district,
       village,
       total_amount,
+      phoneNumber,
+      payment_image: payment_image || null,
+      Transportation: Transportation || null,
+      payment_method: payment_method || null,
       order_date: order_date || new Date(),
       status: status || "pending",
     });
@@ -56,14 +64,47 @@ exports.getAll = async (req, res) => {
   }
 };
 
+exports.getAllUserOrders = async (req, res) => {
+  try {
+    const Order = await defineOrderModel();
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized: missing user ID" });
+    }
+
+    const orders = await Order.findAll({ where: { user_id: userId } });
+
+    res.status(200).json({ message: "Success", orders });
+  } catch (error) {
+    console.error("Get All User Orders Error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+
+
+
 exports.getOne = async (req, res) => {
   try {
     const Order = await defineOrderModel();
     const orderId = req.params.id;
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized: missing user ID" });
+    }
+
     const order = await Order.findByPk(orderId);
+
     if (!order) {
       return res.status(404).json({ error: "Order not found" });
     }
+
+    if (order.user_id !== userId) {
+      return res.status(403).json({ error: "Forbidden: You don't have access to this order" });
+    }
+
     res.status(200).json({ message: "Success", order });
   } catch (error) {
     console.error("Get One Order Error:", error);
@@ -71,12 +112,15 @@ exports.getOne = async (req, res) => {
   }
 };
 
+
 exports.updateOrderStatus = async (req, res) => {
   try {
+    const Order = await defineOrderModel();
     const { status } = req.body;
     const { id } = req.params;
 
     const order = await Order.findByPk(id);
+
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
     }

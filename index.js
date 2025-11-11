@@ -13,7 +13,7 @@ app.use(require('cors')());
 
 app.use(bodyParser.json());
 
-const port = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000;
 
 const upload= require('./src/routes/upload.file.routes');
 app.use('/upload', upload);
@@ -34,6 +34,6 @@ const districts = require('./src/routes/districts');
 app.use('/district', districts);
 
 
-app.listen(port,"192.168.141.246", () => {
-    console.log(`Server is running on port ${port}`);
+app.listen(PORT,'192.168.252.246', () => {
+    console.log(`Server is running on PORT ${PORT}`);
 });

@@ -25,6 +25,22 @@ const defineOrderModel = async () => {
       type: DataTypes.FLOAT,
       allowNull: false,
     },
+    phoneNumber: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    payment_image: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    Transportation: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    payment_method: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
     order_date: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,
@@ -39,6 +55,7 @@ const defineOrderModel = async () => {
   });
 
   await sequelize.sync({ alter: true });
+  return Order;
 
 };
 
